@@ -38,7 +38,12 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   const token = jwt.sign({ id: user._id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-  res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
+  // Updated cookie settings for cross-origin
+  res.cookie('token', token, {
+    httpOnly: true,
+    sameSite: 'None', // Important for cross-site cookies
+    secure: true,     // Cookies only over HTTPS
+  });
   res.json({ message: 'Login successful', name: user.name, role: user.role });
 });
 
@@ -55,7 +60,12 @@ app.get('/api/profile', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
+  // Clear cookie with matching options as when set
+  res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: 'None',
+    secure: true,
+  });
   res.json({ message: 'Logged out.' });
 });
 
