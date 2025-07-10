@@ -1,77 +1,56 @@
-import 'dotenv/config';
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import jwt from 'jsonwebtoken';
-import User from './models/User.js';
+import 'dotenv/config'
+import express from 'express'
+import cors from 'cors'
 
-const app = express();
+// Import routes
+import authRoutes from './routes/auth.js'
+import studentsRoutes from './routes/students.js'
+import attendanceRoutes from './routes/attendance.js'
+import notesRoutes from './routes/notes.js'
+import testsRoutes from './routes/tests.js'
 
+const app = express()
+
+// Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
-}));
-app.use(express.json());
-app.use(cookieParser());
+}))
+app.use(express.json())
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected!'))
-  .catch(err => console.log('MongoDB Error:', err));
+// Routes
+app.use('/api/auth', authRoutes)
+app.use('/api/students', studentsRoutes)
+app.use('/api/attendance', attendanceRoutes)
+app.use('/api/notes', notesRoutes)
+app.use('/api/tests', testsRoutes)
 
-// Auth routes
-app.post('/api/auth/signup', async (req, res) => {
-  const { name, email, password, role } = req.body;
-  try {
-    await User.create({ name, email, password, role });
-    res.json({ message: 'Signup successful' });
-  } catch (e) {
-    res.status(400).json({ error: 'Email already exists' });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email, password });
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  const token = jwt.sign({ id: user._id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-  // Updated cookie settings for cross-origin
-  res.cookie('token', token, {
-    httpOnly: true,
-    sameSite: 'None', // Important for cross-site cookies
-    secure: true,     // Cookies only over HTTPS
-  });
-  res.json({ message: 'Login successful', name: user.name, role: user.role });
-});
-
-app.get('/api/profile', async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ error: 'Not logged in' });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
-    res.json(user);
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-});
-
-app.post('/api/auth/logout', (req, res) => {
-  // Clear cookie with matching options as when set
-  res.clearCookie('token', {
-    httpOnly: true,
-    sameSite: 'None',
-    secure: true,
-  });
-  res.json({ message: 'Logged out.' });
-});
-
+// Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'SSMS Backend is running.' });
-});
+  res.json({ 
+    status: 'School Management System API is running',
+    database: 'Supabase PostgreSQL',
+    version: '2.0.0'
+  })
+})
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err)
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  })
+})
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' })
+})
+
+const PORT = process.env.PORT || 4000
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`)
+  console.log(`📊 Database: Supabase PostgreSQL`)
+  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`)
+})
