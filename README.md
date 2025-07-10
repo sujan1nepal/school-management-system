@@ -40,8 +40,8 @@ A modern school management system backend built with Node.js, Express, and Supab
 
 3. **Environment Variables**
    ```env
-   VITE_SUPABASE_URL=your_supabase_url_here
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+   SUPABASE_URL=your_supabase_url_here
+   SUPABASE_ANON_KEY=your_supabase_anon_key_here
    FRONTEND_URL=http://localhost:3000
    PORT=4000
    ```
